@@ -1,5 +1,9 @@
 # sistem-analizi
 Toplantı 1 (24.03.2026)
+database:postgres/mysql?
+backend: java
+frontend: java/react?
+
 ======DAire - sakin yönetimi:====
 her bir kiracı/daire(özellikleriyle)/ikamet eden sayısı/blok,kat,daireNo/borç/tanımlı plaka
 Admin paneli (sakin kaydetme silme)
