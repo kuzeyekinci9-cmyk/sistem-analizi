@@ -89,3 +89,40 @@ CREATE TABLE Vehicle_Logs (
     entry_time DATETIME DEFAULT CURRENT_TIMESTAMP,
     exit_time DATETIME NULL
 );
+
+
+--mock data for testing
+INSERT INTO Users (full_name, phone, password, role, dues_debt, extra_debt)
+VALUES
+('Site Admin', '05000000001', 'admin123', 'ADMIN', 0.00, 0.00),
+('Ahmet Yilmaz', '05000000002', '1234', 'RESIDENT', 750.00, 0.00),
+('Ayse Demir', '05000000003', '1234', 'RESIDENT', 0.00, 200.00),
+('Guvenlik Gorevlisi', '05000000004', '1234', 'SECURITY', 0.00, 0.00);
+
+INSERT INTO Apartments (resident_id, block_name, floor_number, door_number, headcount, is_occupied)
+VALUES
+(2, 'A', 1, 1, 3, TRUE),
+(3, 'A', 2, 5, 2, TRUE),
+(NULL, 'B', 1, 2, 0, FALSE),
+(NULL, 'B', 3, 9, 0, FALSE);
+
+INSERT INTO Vehicles (apartment_id, license_plate)
+VALUES
+(1, '34ABC123'),
+(2, '06XYZ789');
+
+INSERT INTO Maintenance_Tickets (resident_id, title, description, status)
+VALUES
+(2, 'Su Sizintisi', 'Mutfak lavabosunun altinda sizinti var.', 'OPEN'),
+(3, 'Asansor Arizasi', 'Asansor 2. katta takili kaliyor.', 'IN_PROGRESS');
+
+INSERT INTO Transactions (resident_id, amount, transaction_type, description)
+VALUES
+(2, 750.00, 'DUE', 'Nisan aidati'),
+(2, 750.00, 'PAYMENT', 'Nisan aidati odemesi'),
+(3, 200.00, 'EXTRA_FEE', 'Tamirat ucreti');
+
+INSERT INTO Vehicle_Logs (license_plate, is_guest)
+VALUES
+('34ABC123', FALSE),
+('34MIS123', TRUE);
