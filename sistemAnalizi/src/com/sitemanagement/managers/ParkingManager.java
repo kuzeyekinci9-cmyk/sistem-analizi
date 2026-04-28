@@ -78,7 +78,7 @@ public class ParkingManager implements IParkingService {
     @Override
     public String findOwnerByPlate(String plate) {
         String query = "SELECT u.full_name, a.block_name, a.door_number FROM Users u " +
-                       "JOIN Apartments a ON u.id = a.resident_id " +
+                       "JOIN Apartments a ON u.apartment_id = a.id " +
                        "JOIN Vehicles v ON a.id = v.apartment_id WHERE v.license_plate = ?";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {

@@ -66,20 +66,7 @@ public class ResidentManager implements IResidentService {
         }
     }
 
-    public boolean assignToApartment(int residentId, int apartmentId, int headcount) {
-        String query = "UPDATE Apartments SET resident_id = ?, headcount = ?, is_occupied = TRUE WHERE id = ?";
-        try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, residentId);
-            stmt.setInt(2, headcount);
-            stmt.setInt(3, apartmentId);
-            return stmt.executeUpdate() > 0;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-    
+
     public boolean assignToApartment(int residentId, int apartmentId) {
         String updateUserQuery = "UPDATE Users SET apartment_id = ? WHERE id = ?";
         String updateAptQuery = "UPDATE Apartments SET is_occupied = TRUE WHERE id = ?";
