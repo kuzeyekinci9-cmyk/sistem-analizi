@@ -6,7 +6,9 @@ public class Apartment {
     private int floorNumber;
     private int doorNumber;
     private boolean isOccupied; 
-    private String residentNames; // EKLENDİ: Hangi sakinlerin yaşadığını tutmak için
+    private int residentId; // ERD: resident_id FK
+    private int headcount;  // ERD: headcount
+    private String residentName; // Sadece UI'da göstermek için (Veritabanında yok)
 
     public Apartment(int id, String blockName, int floorNumber, int doorNumber) {
         this.id = id;
@@ -14,7 +16,9 @@ public class Apartment {
         this.floorNumber = floorNumber;
         this.doorNumber = doorNumber;
         this.isOccupied = false; // Varsayılan olarak boş atanır
-        this.residentNames = ""; // Başlangıçta boş
+        this.residentId = 0; // Başlangıçta boş
+        this.headcount = 0; // Başlangıçta boş
+        this.residentName = "Boş"; // Başlangıçta UI için Boş
     }
 
     // --- Getter ve Setter Metodları ---
@@ -51,7 +55,6 @@ public class Apartment {
         this.doorNumber = doorNumber;
     }
 
-    // HATA VEREN METODLAR EKLENDİ
     public boolean isOccupied() {
         return isOccupied;
     }
@@ -60,11 +63,27 @@ public class Apartment {
         this.isOccupied = occupied;
     }
 
-    public String getResidentNames() {
-        return residentNames;
+    public int getResidentId() {
+        return residentId;
     }
 
-    public void setResidentNames(String residentNames) {
-        this.residentNames = residentNames;
+    public void setResidentId(int residentId) {
+        this.residentId = residentId;
+    }
+
+    public int getHeadcount() {
+        return headcount;
+    }
+
+    public void setHeadcount(int headcount) {
+        this.headcount = headcount;
+    }
+
+    public String getResidentName() {
+        return residentName;
+    }
+
+    public void setResidentName(String residentName) {
+        this.residentName = residentName;
     }
 }

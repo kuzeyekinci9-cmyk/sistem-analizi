@@ -55,6 +55,12 @@ public class FinanceManager implements IFinanceService {
 
     @Override 
     public boolean logManualPayment(int residentId, BigDecimal amount, String note) { 
+        // Mevcut borç kontrolü.
+        BigDecimal currentDebt = calculateTotalDebt(residentId);
+        if (amount.compareTo(currentDebt) > 0) {
+            return false; // Fazla ödeme engellendi.
+        }
+
         String updateQuery = "UPDATE Users SET dues_debt = dues_debt - ? WHERE id = ?";
         String logQuery = "INSERT INTO Transactions (resident_id, amount, transaction_type, description) VALUES (?, ?, 'PAYMENT', ?)";
         
@@ -88,7 +94,7 @@ public class FinanceManager implements IFinanceService {
         } catch (SQLException e) { e.printStackTrace(); return false; }
     }
 
-    // YENİ EKLENDİ: Gelir-Gider Raporu Oluşturma
+    // Gelir-Gider raporu oluşturur.
     @Override
     public List<Transaction> getSiteGeneralReport() {
         List<Transaction> list = new ArrayList<>();
@@ -104,7 +110,7 @@ public class FinanceManager implements IFinanceService {
         return list;
     }
 
-    // TAMAMLANDI: return ZERO; şeklindeydi
+
     @Override 
     public BigDecimal calculateTotalDebt(int residentId) { 
         String query = "SELECT dues_debt + extra_debt as total FROM Users WHERE id = ?";

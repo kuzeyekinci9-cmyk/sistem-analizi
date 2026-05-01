@@ -69,7 +69,7 @@ public class CommunicationManager implements ICommunicationService {
     public boolean castVote(int pollId, int residentId, String optionText) {
         String checkQuery = "SELECT * FROM Poll_Votes WHERE poll_id = ? AND resident_id = ?";
         String voteQuery = "INSERT INTO Poll_Votes (poll_id, resident_id) VALUES (?, ?)";
-        // SQL Injection ve ID karmaşasını önlemek için metin ile eşleşme yapıyoruz
+        // Seçenek eşleştirme.
         String updateOptQuery = "UPDATE Poll_Options SET vote_count = vote_count + 1 WHERE poll_id = ? AND option_text = ?";
 
         try (Connection conn = DatabaseHelper.getConnection();
@@ -89,7 +89,13 @@ public class CommunicationManager implements ICommunicationService {
 
                 updateStmt.setInt(1, pollId);
                 updateStmt.setString(2, optionText);
-                updateStmt.executeUpdate();
+                int affectedRows = updateStmt.executeUpdate();
+
+                // Geçersiz oy kontrolü.
+                if (affectedRows == 0) {
+                    conn.rollback();
+                    return false;
+                }
 
                 conn.commit();
                 return true;

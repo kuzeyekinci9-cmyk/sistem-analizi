@@ -1,6 +1,7 @@
 package com.sitemanagement.models;
 
 import com.sitemanagement.enums.Role;
+import java.math.BigDecimal;
 
 public abstract class User {
     private int id;
@@ -8,6 +9,8 @@ public abstract class User {
     private String phone;
     private String password;
     private Role role;
+    private BigDecimal duesDebt;  // Aidat borcu
+    private BigDecimal extraDebt; // Onarım/Tadilat borcu
 
     public User(int id, String fullName, String phone, String password, Role role) {
         this.id = id;
@@ -15,6 +18,12 @@ public abstract class User {
         this.phone = phone;
         this.password = password;
         this.role = role;
+        this.duesDebt = BigDecimal.ZERO;
+        this.extraDebt = BigDecimal.ZERO;
+    }
+
+    public BigDecimal getTotalDebt() {
+        return duesDebt.add(extraDebt);
     }
 
     public int getId() { return id; }
@@ -31,4 +40,10 @@ public abstract class User {
 
     public Role getRole() { return role; }
     protected void setRole(Role role) { this.role = role; }
+
+    public BigDecimal getDuesDebt() { return duesDebt; }
+    public void setDuesDebt(BigDecimal duesDebt) { this.duesDebt = duesDebt; }
+
+    public BigDecimal getExtraDebt() { return extraDebt; }
+    public void setExtraDebt(BigDecimal extraDebt) { this.extraDebt = extraDebt; }
 }

@@ -13,6 +13,18 @@ public class ResidentManager implements IResidentService {
 
     @Override
     public boolean registerResident(Resident resident) {
+        // Eşsizlik kontrolü.
+        String checkQuery = "SELECT id FROM Users WHERE phone = ?";
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
+            checkStmt.setString(1, resident.getPhone());
+            ResultSet rs = checkStmt.executeQuery();
+            if (rs.next()) {
+                return false; // Kayıtlı numara.
+            }
+        } catch (SQLException e) { e.printStackTrace(); return false; }
+
+        // Kayıt işlemi.
         String query = "INSERT INTO Users (full_name, phone, password, role) VALUES (?, ?, ?, ?)";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
@@ -68,30 +80,27 @@ public class ResidentManager implements IResidentService {
 
 
     public boolean assignToApartment(int residentId, int apartmentId) {
-        String updateUserQuery = "UPDATE Users SET apartment_id = ? WHERE id = ?";
-        String updateAptQuery = "UPDATE Apartments SET is_occupied = TRUE WHERE id = ?";
-        
-        try (Connection conn = DatabaseHelper.getConnection()) {
-            conn.setAutoCommit(false); // İşlemleri garantiye almak için
-            
-            try (PreparedStatement stmtUser = conn.prepareStatement(updateUserQuery);
-                 PreparedStatement stmtApt = conn.prepareStatement(updateAptQuery)) {
-                
-                // Sakini daireye bağla
-                stmtUser.setInt(1, apartmentId);
-                stmtUser.setInt(2, residentId);
-                stmtUser.executeUpdate();
-                
-                // Daireyi 'Dolu' olarak işaretle
-                stmtApt.setInt(1, apartmentId);
-                stmtApt.executeUpdate();
-                
-                conn.commit();
-                return true;
-            } catch (SQLException ex) {
-                conn.rollback();
-                return false;
+        // Doluluk kontrolü.
+        String checkAptQuery = "SELECT is_occupied FROM Apartments WHERE id = ?";
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(checkAptQuery)) {
+            checkStmt.setInt(1, apartmentId);
+            ResultSet rs = checkStmt.executeQuery();
+            if (rs.next() && rs.getBoolean("is_occupied")) {
+                return false; // Dolu daire.
             }
+        } catch (SQLException e) { e.printStackTrace(); return false; }
+
+        // Atama işlemi.
+        String updateAptQuery = "UPDATE Apartments SET resident_id = ?, is_occupied = TRUE WHERE id = ?";
+        
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement stmtApt = conn.prepareStatement(updateAptQuery)) {
+            
+            stmtApt.setInt(1, residentId);
+            stmtApt.setInt(2, apartmentId);
+            return stmtApt.executeUpdate() > 0;
+            
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -190,15 +199,17 @@ public class ResidentManager implements IResidentService {
 
     public List<Apartment> getAllApartments() {
         List<Apartment> list = new ArrayList<>();
-        String query = "SELECT a.*, GROUP_CONCAT(u.full_name SEPARATOR ', ') AS resident_names FROM Apartments a LEFT JOIN Users u ON a.id = u.apartment_id GROUP BY a.id";
+        String query = "SELECT a.*, u.full_name AS resident_name FROM Apartments a LEFT JOIN Users u ON a.resident_id = u.id";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 Apartment apt = new Apartment(rs.getInt("id"), rs.getString("block_name"), rs.getInt("floor_number"), rs.getInt("door_number"));
                 apt.setOccupied(rs.getBoolean("is_occupied"));
-                String names = rs.getString("resident_names");
-                apt.setResidentNames(names != null ? names : "Boş");
+                apt.setResidentId(rs.getInt("resident_id"));
+                apt.setHeadcount(rs.getInt("headcount"));
+                String rName = rs.getString("resident_name");
+                apt.setResidentName(rName != null ? rName : "Boş");
                 list.add(apt);
             }
         } catch (SQLException e) {

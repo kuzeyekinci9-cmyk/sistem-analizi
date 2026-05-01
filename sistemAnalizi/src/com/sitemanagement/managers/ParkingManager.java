@@ -8,17 +8,17 @@ public class ParkingManager implements IParkingService {
 
     private final int MAX_CAPACITY = 150; 
 
-    // YENİ EKLENDİ: Araç Tanımlama (Diyagramda var, ER'da tablosu var)
+    // Araç tanımlama metodu.
     @Override
     public boolean registerVehicle(int apartmentId, String licensePlate) {
-        // En fazla 3 araç kontrolü
+        // Kapasite kontrolü.
         String checkCountQuery = "SELECT COUNT(*) AS total_cars FROM Vehicles WHERE apartment_id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement checkStmt = conn.prepareStatement(checkCountQuery)) {
             checkStmt.setInt(1, apartmentId);
             ResultSet rs = checkStmt.executeQuery();
             if (rs.next() && rs.getInt("total_cars") >= 3) {
-                return false; // Maksimum kapasiteye (3) ulaşıldı
+                return false; // Maksimum kapasite aşıldı.
             }
         } catch (SQLException e) { e.printStackTrace(); return false; }
 
@@ -31,7 +31,7 @@ public class ParkingManager implements IParkingService {
         } catch (SQLException e) { e.printStackTrace(); return false; }
     }
 
-    // Belirli bir dairenin araç plakalarını getir
+    // Daireye ait araç plakalarını getirir.
     public java.util.List<String> getVehiclesByApartment(int apartmentId) {
         java.util.List<String> plates = new java.util.ArrayList<>();
         String query = "SELECT license_plate FROM Vehicles WHERE apartment_id = ?";
@@ -46,7 +46,7 @@ public class ParkingManager implements IParkingService {
         return plates;
     }
 
-    // Tum araclar (Admin izleme)
+    // Tüm araçları getirir.
     public static class RegisteredVehicleInfo {
         private String ownerInfo;
         private String licensePlate;
@@ -74,11 +74,11 @@ public class ParkingManager implements IParkingService {
         return list;
     }
 
-    // YENİ EKLENDİ: Araç Sorgulama
+    // Araç sorgulama metodu.
     @Override
     public String findOwnerByPlate(String plate) {
-        String query = "SELECT u.full_name, a.block_name, a.door_number FROM Users u " +
-                       "JOIN Apartments a ON u.apartment_id = a.id " +
+        String query = "SELECT u.full_name, a.block_name, a.door_number FROM Apartments a " +
+                       "JOIN Users u ON a.resident_id = u.id " +
                        "JOIN Vehicles v ON a.id = v.apartment_id WHERE v.license_plate = ?";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -117,7 +117,7 @@ public class ParkingManager implements IParkingService {
     public int getCurrentOccupancy() {
         int total = 0;
 
-        // 1. Sisteme kayıtlı kalıcı araçların sayısı
+        // Sisteme kayıtlı araçların sayısı.
         String regQuery = "SELECT COUNT(*) AS count_reg FROM Vehicles";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(regQuery);
@@ -125,7 +125,7 @@ public class ParkingManager implements IParkingService {
             if (rs.next()) { total += rs.getInt("count_reg"); }
         } catch (SQLException e) { e.printStackTrace(); }
 
-        // 2. Halihazırda içeride olan (çıkış yapmamış) misafir/loglu araçların sayısı
+        // Misafir araçların sayısı.
         String guestQuery = "SELECT COUNT(*) AS count_guest FROM Vehicle_Logs WHERE exit_time IS NULL AND is_guest = TRUE";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(guestQuery);

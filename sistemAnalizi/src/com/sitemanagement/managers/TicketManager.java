@@ -70,6 +70,18 @@ public class TicketManager implements ITicketService {
     }
 
     public boolean assignTicketToStaff(int ticketId, int staffId) {
+        // Personel ID doğrulaması.
+        String checkStaffQuery = "SELECT role FROM Users WHERE id = ?";
+        try (Connection conn = DatabaseHelper.getConnection();
+             PreparedStatement checkStmt = conn.prepareStatement(checkStaffQuery)) {
+            checkStmt.setInt(1, staffId);
+            ResultSet rs = checkStmt.executeQuery();
+            if (!rs.next()) return false; // Kullanıcı bulunamadı.
+            String role = rs.getString("role");
+            if ("RESIDENT".equalsIgnoreCase(role)) return false; // Yetkisiz rol.
+        } catch (SQLException e) { e.printStackTrace(); return false; }
+
+        // Atama işlemi.
         String query = "UPDATE Maintenance_Tickets SET assigned_staff_id = ?, status = 'IN_PROGRESS' WHERE id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -79,7 +91,7 @@ public class TicketManager implements ITicketService {
         } catch (SQLException e) { e.printStackTrace(); return false; }
     }
 
-    // TAMAMLANDI: return null; şeklindeydi (Arıza Durumu Sorgulama / Personel Atama için gerekli)
+
     @Override 
     public MaintenanceTicket getTicketById(int ticketId) { 
         String query = "SELECT * FROM Maintenance_Tickets WHERE id = ?";

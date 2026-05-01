@@ -150,7 +150,7 @@ public class MainApp extends Application {
             createCol("Kat", "floorNumber"), 
             createCol("Kapı No", "doorNumber"),
             createCol("Dolu Mu?", "occupied"), // EKLENDİ: Dairenin dolu olup olmadığını görmek için
-            createCol("Oturan Kişi(ler)", "residentNames") // YENİ: Dairede oturan sakinleri gösterir
+            createCol("Oturan Kişi", "residentName") // DÜZELTİLDİ: Artık tekil olarak sadece sahibini (muhatabı) gösteriyor
         );
         tableApt.setItems(FXCollections.observableArrayList(residentManager.getAllApartments()));
         tableApt.setPrefHeight(150);
@@ -595,6 +595,11 @@ public class MainApp extends Application {
         Label title = new Label("Hesap Dökümüm ve Borç Ödeme");
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
 
+        // YENİ EKLENDİ: Kalan borcu anlık göstermek için
+        BigDecimal currentDebt = financeManager.calculateTotalDebt(currentUserId);
+        Label lblDebt = new Label("Güncel Toplam Borcunuz: " + currentDebt + " TL");
+        lblDebt.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #e74c3c;");
+
         TableView<Transaction> table = new TableView<>();
         table.getColumns().addAll(createCol("İşlem ID", "transactionId"), createCol("Tutar", "amount"), createCol("Açıklama", "description"));
         table.setItems(FXCollections.observableArrayList(financeManager.getResidentLedger(currentUserId)));
@@ -608,8 +613,12 @@ public class MainApp extends Application {
             try {
                 BigDecimal amount = new BigDecimal(txtPayAmount.getText());
                 if(financeManager.logManualPayment(currentUserId, amount, "Sakin Uygulama Üzerinden Ödeme Yaptı")) {
-                    showAlert("Başarılı", "Ödeme başarıyla alındı.");
+                    showAlert("Başarılı", "Ödeme başarıyla alındı. Borcunuzdan düşüldü.");
                     table.setItems(FXCollections.observableArrayList(financeManager.getResidentLedger(currentUserId))); 
+                    lblDebt.setText("Güncel Toplam Borcunuz: " + financeManager.calculateTotalDebt(currentUserId) + " TL");
+                    txtPayAmount.clear();
+                } else {
+                    showAlert("Hata", "Ödeme başarısız! \nOlası nedenler: Mevcut borcunuzdan (" + financeManager.calculateTotalDebt(currentUserId) + " TL) daha fazla ödeme yapamazsınız.");
                 }
             } catch(Exception ex) {
                 showAlert("Hata", "Lütfen geçerli bir tutar girin.");
@@ -617,7 +626,7 @@ public class MainApp extends Application {
         });
         paymentForm.getChildren().addAll(txtPayAmount, btnPay);
 
-        layout.getChildren().addAll(title, table, new Label("Hızlı Ödeme İşlemi:"), paymentForm);
+        layout.getChildren().addAll(title, lblDebt, table, new Label("Hızlı Ödeme İşlemi:"), paymentForm);
         return layout;
     }
 

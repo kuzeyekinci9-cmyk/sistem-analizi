@@ -18,28 +18,30 @@ DROP TABLE IF EXISTS Users;
 DROP TABLE IF EXISTS Apartments;
 DROP TABLE IF EXISTS Announcements;
 
--- 1. Önce Apartments tablosu oluşturulur (Çünkü Users tablosu buraya bağlanacak)
-CREATE TABLE Apartments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    block_name VARCHAR(10),
-    floor_number INT,
-    door_number INT,
-    headcount INT DEFAULT 0,
-    is_occupied BOOLEAN DEFAULT FALSE
-);
-
--- 2. Users (Sakinler/Personel) tablosu (Daire ID'si buraya eklendi)
+-- 1. Önce Users (Sakinler/Personel) tablosu (Apartments'dan önce oluşturulmalı çünkü foreign key oradan gelecek)
 CREATE TABLE Users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    apartment_id INT, -- Bir evde birden fazla kişinin kalabilmesi için eklendi
     full_name VARCHAR(100) NOT NULL,
     phone VARCHAR(20),
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) NOT NULL, 
     dues_debt DECIMAL(10,2) DEFAULT 0.00,
-    extra_debt DECIMAL(10,2) DEFAULT 0.00,
-    FOREIGN KEY (apartment_id) REFERENCES Apartments(id) ON DELETE SET NULL
+    extra_debt DECIMAL(10,2) DEFAULT 0.00
 );
+
+-- 2. Apartments tablosu (resident_id buraya eklendi)
+CREATE TABLE Apartments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    resident_id INT, -- Dairenin muhatabı/sahibi olan kişi
+    block_name VARCHAR(10),
+    floor_number INT,
+    door_number INT,
+    headcount INT DEFAULT 0,
+    is_occupied BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (resident_id) REFERENCES Users(id) ON DELETE SET NULL
+);
+
+
 
 -- 3. Araçlar tablosu (Doğrudan daireye bağlı)
 CREATE TABLE Vehicles (
