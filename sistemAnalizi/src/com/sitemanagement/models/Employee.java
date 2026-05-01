@@ -1,6 +1,7 @@
 package com.sitemanagement.models;
 
 import com.sitemanagement.enums.Role;
+
 // Sitede oturmayan Yönetici veya Güvenlik görevlileri için
 public class Employee extends User {
 

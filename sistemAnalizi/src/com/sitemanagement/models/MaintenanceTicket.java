@@ -21,12 +21,31 @@ public class MaintenanceTicket {
     }
 
     // Getters and Setters
-    public int getTicketId() { return ticketId; }
-    public int getResidentId() { return residentId; }
-    public String getTitle() { return title; }
-    public String getDescription() { return description; }
-    public LocalDateTime getCreatedAt() { return createdAt; }
+    public int getTicketId() {
+        return ticketId;
+    }
 
-    public TicketStatus getStatus() { return status; }
-    public void setStatus(TicketStatus status) { this.status = status; }
+    public int getResidentId() {
+        return residentId;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public TicketStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TicketStatus status) {
+        this.status = status;
+    }
 }

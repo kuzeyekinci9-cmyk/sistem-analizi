@@ -6,10 +6,14 @@ import java.util.List;
 
 public interface ICommunicationService {
     boolean publishAnnouncement(String title, String content);
+
     List<Announcement> getAllAnnouncements();
-    
+
     boolean createPoll(String question, String[] options);
+
     boolean castVote(int pollId, int residentId, String optionText); // int optionId YERİNE DÜZELTİLDİ
+
     Poll getPollDetails(int pollId);
+
     List<Poll> getActivePolls();
 }

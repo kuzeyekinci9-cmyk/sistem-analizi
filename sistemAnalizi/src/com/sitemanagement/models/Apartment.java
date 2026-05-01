@@ -5,9 +5,9 @@ public class Apartment {
     private String blockName;
     private int floorNumber;
     private int doorNumber;
-    private boolean isOccupied; 
+    private boolean isOccupied;
     private int residentId; // ERD: resident_id FK
-    private int headcount;  // ERD: headcount
+    private int headcount; // ERD: headcount
     private String residentName; // Sadece UI'da göstermek için (Veritabanında yok)
 
     public Apartment(int id, String blockName, int floorNumber, int doorNumber) {

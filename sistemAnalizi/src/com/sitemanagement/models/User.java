@@ -9,7 +9,7 @@ public abstract class User {
     private String phone;
     private String password;
     private Role role;
-    private BigDecimal duesDebt;  // Aidat borcu
+    private BigDecimal duesDebt; // Aidat borcu
     private BigDecimal extraDebt; // Onarım/Tadilat borcu
 
     public User(int id, String fullName, String phone, String password, Role role) {
@@ -26,24 +26,59 @@ public abstract class User {
         return duesDebt.add(extraDebt);
     }
 
-    public int getId() { return id; }
-    public void setId(int id) { this.id = id; }
+    public int getId() {
+        return id;
+    }
 
-    public String getFullName() { return fullName; }
-    public void setFullName(String fullName) { this.fullName = fullName; }
+    public void setId(int id) {
+        this.id = id;
+    }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public String getFullName() {
+        return fullName;
+    }
 
-    public String getPassword() { return password; }
-    public void setPassword(String password) { this.password = password; }
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
 
-    public Role getRole() { return role; }
-    protected void setRole(Role role) { this.role = role; }
+    public String getPhone() {
+        return phone;
+    }
 
-    public BigDecimal getDuesDebt() { return duesDebt; }
-    public void setDuesDebt(BigDecimal duesDebt) { this.duesDebt = duesDebt; }
+    public void setPhone(String phone) {
+        this.phone = phone;
+    }
 
-    public BigDecimal getExtraDebt() { return extraDebt; }
-    public void setExtraDebt(BigDecimal extraDebt) { this.extraDebt = extraDebt; }
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    protected void setRole(Role role) {
+        this.role = role;
+    }
+
+    public BigDecimal getDuesDebt() {
+        return duesDebt;
+    }
+
+    public void setDuesDebt(BigDecimal duesDebt) {
+        this.duesDebt = duesDebt;
+    }
+
+    public BigDecimal getExtraDebt() {
+        return extraDebt;
+    }
+
+    public void setExtraDebt(BigDecimal extraDebt) {
+        this.extraDebt = extraDebt;
+    }
 }

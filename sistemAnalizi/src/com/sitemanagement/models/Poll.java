@@ -16,7 +16,7 @@ public class Poll {
         this.question = question;
         this.options = new HashMap<>();
         this.votedResidentIds = new HashSet<>();
-        
+
         // Seçenekleri sıfır oy ile başlatıyoruz
         for (String option : initialOptions) {
             this.options.put(option, 0);
@@ -27,9 +27,9 @@ public class Poll {
     public boolean castVote(int residentId, String selectedOption) {
         // Sakin daha önce oy kullanmış mı veya seçilen opsiyon geçerli mi kontrolü
         if (votedResidentIds.contains(residentId) || !options.containsKey(selectedOption)) {
-            return false; 
+            return false;
         }
-        
+
         // Oyu artır ve sakini listeye ekle
         options.put(selectedOption, options.get(selectedOption) + 1);
         votedResidentIds.add(residentId);
@@ -37,8 +37,19 @@ public class Poll {
     }
 
     // Getters
-    public int getPollId() { return pollId; }
-    public String getQuestion() { return question; }
-    public Map<String, Integer> getOptions() { return options; }
-    public Set<Integer> getVotedResidentIds() { return votedResidentIds; }
+    public int getPollId() {
+        return pollId;
+    }
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public Map<String, Integer> getOptions() {
+        return options;
+    }
+
+    public Set<Integer> getVotedResidentIds() {
+        return votedResidentIds;
+    }
 }

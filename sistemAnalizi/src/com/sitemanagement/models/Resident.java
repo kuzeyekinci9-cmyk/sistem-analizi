@@ -11,6 +11,11 @@ public class Resident extends User {
     }
 
     // Getters and Setters
-    public Apartment getApartment() { return apartment; }
-    public void setApartment(Apartment apartment) { this.apartment = apartment; }
+    public Apartment getApartment() {
+        return apartment;
+    }
+
+    public void setApartment(Apartment apartment) {
+        this.apartment = apartment;
+    }
 }

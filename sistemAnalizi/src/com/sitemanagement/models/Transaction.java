@@ -21,10 +21,27 @@ public class Transaction {
         this.date = LocalDateTime.now(); // İşlem anının tarih ve saatini otomatik atar
     }
 
-    public int getTransactionId() { return transactionId; }
-    public int getResidentId() { return residentId; }
-    public BigDecimal getAmount() { return amount; }
-    public TransactionType getType() { return type; }
-    public String getDescription() { return description; }
-    public LocalDateTime getDate() { return date; }
+    public int getTransactionId() {
+        return transactionId;
+    }
+
+    public int getResidentId() {
+        return residentId;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public TransactionType getType() {
+        return type;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public LocalDateTime getDate() {
+        return date;
+    }
 }

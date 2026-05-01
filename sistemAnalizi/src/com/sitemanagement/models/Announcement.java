@@ -16,8 +16,19 @@ public class Announcement {
     }
 
     // Getters and Setters
-    public int getId() { return id; }
-    public String getTitle() { return title; }
-    public String getContent() { return content; }
-    public LocalDate getPublishDate() { return publishDate; }
+    public int getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public LocalDate getPublishDate() {
+        return publishDate;
+    }
 }

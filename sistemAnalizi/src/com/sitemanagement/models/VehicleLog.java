@@ -21,9 +21,23 @@ public class VehicleLog {
         this.exitTime = LocalDateTime.now();
     }
 
-    public int getLogId() { return logId; }
-    public String getLicensePlate() { return licensePlate; }
-    public boolean isGuest() { return isGuest; }
-    public LocalDateTime getEntryTime() { return entryTime; }
-    public LocalDateTime getExitTime() { return exitTime; }
+    public int getLogId() {
+        return logId;
+    }
+
+    public String getLicensePlate() {
+        return licensePlate;
+    }
+
+    public boolean isGuest() {
+        return isGuest;
+    }
+
+    public LocalDateTime getEntryTime() {
+        return entryTime;
+    }
+
+    public LocalDateTime getExitTime() {
+        return exitTime;
+    }
 }

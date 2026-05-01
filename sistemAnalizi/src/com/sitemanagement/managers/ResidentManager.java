@@ -16,28 +16,31 @@ public class ResidentManager implements IResidentService {
         // Eşsizlik kontrolü.
         String checkQuery = "SELECT id FROM Users WHERE phone = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
+                PreparedStatement checkStmt = conn.prepareStatement(checkQuery)) {
             checkStmt.setString(1, resident.getPhone());
             ResultSet rs = checkStmt.executeQuery();
             if (rs.next()) {
                 return false; // Kayıtlı numara.
             }
-        } catch (SQLException e) { e.printStackTrace(); return false; }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
 
         // Kayıt işlemi.
         String query = "INSERT INTO Users (full_name, phone, password, role) VALUES (?, ?, ?, ?)";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
             stmt.setString(1, resident.getFullName());
             stmt.setString(2, resident.getPhone());
             stmt.setString(3, resident.getPassword());
             stmt.setString(4, resident.getRole().toString());
             int affectedRows = stmt.executeUpdate();
-            
+
             if (affectedRows > 0) {
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        resident.setId(generatedKeys.getInt(1)); 
+                        resident.setId(generatedKeys.getInt(1));
                     }
                 }
                 return true;
@@ -53,7 +56,7 @@ public class ResidentManager implements IResidentService {
     public boolean removeResident(int residentId) {
         String query = "DELETE FROM Users WHERE id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, residentId);
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -66,7 +69,7 @@ public class ResidentManager implements IResidentService {
     public boolean updateResident(Resident resident) {
         String query = "UPDATE Users SET full_name = ?, phone = ?, password = ? WHERE id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, resident.getFullName());
             stmt.setString(2, resident.getPhone());
             stmt.setString(3, resident.getPassword());
@@ -78,29 +81,31 @@ public class ResidentManager implements IResidentService {
         }
     }
 
-
     public boolean assignToApartment(int residentId, int apartmentId) {
         // Doluluk kontrolü.
         String checkAptQuery = "SELECT is_occupied FROM Apartments WHERE id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement checkStmt = conn.prepareStatement(checkAptQuery)) {
+                PreparedStatement checkStmt = conn.prepareStatement(checkAptQuery)) {
             checkStmt.setInt(1, apartmentId);
             ResultSet rs = checkStmt.executeQuery();
             if (rs.next() && rs.getBoolean("is_occupied")) {
                 return false; // Dolu daire.
             }
-        } catch (SQLException e) { e.printStackTrace(); return false; }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
 
         // Atama işlemi.
         String updateAptQuery = "UPDATE Apartments SET resident_id = ?, is_occupied = TRUE WHERE id = ?";
-        
+
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmtApt = conn.prepareStatement(updateAptQuery)) {
-            
+                PreparedStatement stmtApt = conn.prepareStatement(updateAptQuery)) {
+
             stmtApt.setInt(1, residentId);
             stmtApt.setInt(2, apartmentId);
             return stmtApt.executeUpdate() > 0;
-            
+
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
@@ -112,10 +117,11 @@ public class ResidentManager implements IResidentService {
         List<Resident> list = new ArrayList<>();
         String query = "SELECT * FROM Users WHERE role = 'RESIDENT'";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                Resident r = new Resident(rs.getInt("id"), rs.getString("full_name"), rs.getString("phone"), rs.getString("password"), Role.RESIDENT);
+                Resident r = new Resident(rs.getInt("id"), rs.getString("full_name"), rs.getString("phone"),
+                        rs.getString("password"), Role.RESIDENT);
                 r.setDuesDebt(rs.getBigDecimal("dues_debt"));
                 r.setExtraDebt(rs.getBigDecimal("extra_debt"));
                 list.add(r);
@@ -129,18 +135,17 @@ public class ResidentManager implements IResidentService {
     public Resident authenticateUser(String phone, String password, Role role) {
         String query = "SELECT * FROM Users WHERE phone = ? AND password = ? AND role = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-             
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
             stmt.setString(1, phone);
             stmt.setString(2, password);
             stmt.setString(3, role.toString());
-            
+
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     Resident user = new Resident(
-                        rs.getInt("id"), rs.getString("full_name"), rs.getString("phone"),
-                        rs.getString("password"), role
-                    );
+                            rs.getInt("id"), rs.getString("full_name"), rs.getString("phone"),
+                            rs.getString("password"), role);
                     user.setDuesDebt(rs.getBigDecimal("dues_debt"));
                     user.setExtraDebt(rs.getBigDecimal("extra_debt")); // EKSİKTİ EKLENDİ
                     return user;
@@ -152,41 +157,47 @@ public class ResidentManager implements IResidentService {
         return null;
     }
 
-    @Override 
-    public Resident getResidentById(int residentId) { 
+    @Override
+    public Resident getResidentById(int residentId) {
         String query = "SELECT * FROM Users WHERE id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt =prepareStatement(query)) {
+                PreparedStatement stmt = prepareStatement(query)) {
             stmt.setInt(1, residentId);
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
-                Resident r = new Resident(rs.getInt("id"), rs.getString("full_name"), rs.getString("phone"), rs.getString("password"), Role.valueOf(rs.getString("role")));
+                Resident r = new Resident(rs.getInt("id"), rs.getString("full_name"), rs.getString("phone"),
+                        rs.getString("password"), Role.valueOf(rs.getString("role")));
                 r.setDuesDebt(rs.getBigDecimal("dues_debt"));
                 r.setExtraDebt(rs.getBigDecimal("extra_debt"));
                 return r;
             }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return null; 
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
-    @Override 
-    public List<Apartment> getEmptyApartments() { 
+    @Override
+    public List<Apartment> getEmptyApartments() {
         List<Apartment> list = new ArrayList<>();
         String query = "SELECT * FROM Apartments WHERE is_occupied = FALSE";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
-            while(rs.next()){
-                list.add(new Apartment(rs.getInt("id"), rs.getString("block_name"), rs.getInt("floor_number"), rs.getInt("door_number")));
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Apartment(rs.getInt("id"), rs.getString("block_name"), rs.getInt("floor_number"),
+                        rs.getInt("door_number")));
             }
-        } catch (SQLException e) { e.printStackTrace(); }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return list;
     }
 
     public boolean createApartment(String blockName, int floorNumber, int doorNumber) {
         String query = "INSERT INTO Apartments (block_name, floor_number, door_number, is_occupied) VALUES (?, ?, ?, FALSE)";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setString(1, blockName);
             stmt.setInt(2, floorNumber);
             stmt.setInt(3, doorNumber);
@@ -201,10 +212,11 @@ public class ResidentManager implements IResidentService {
         List<Apartment> list = new ArrayList<>();
         String query = "SELECT a.*, u.full_name AS resident_name FROM Apartments a LEFT JOIN Users u ON a.resident_id = u.id";
         try (Connection conn = DatabaseHelper.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
-                Apartment apt = new Apartment(rs.getInt("id"), rs.getString("block_name"), rs.getInt("floor_number"), rs.getInt("door_number"));
+                Apartment apt = new Apartment(rs.getInt("id"), rs.getString("block_name"), rs.getInt("floor_number"),
+                        rs.getInt("door_number"));
                 apt.setOccupied(rs.getBoolean("is_occupied"));
                 apt.setResidentId(rs.getInt("resident_id"));
                 apt.setHeadcount(rs.getInt("headcount"));
@@ -217,7 +229,7 @@ public class ResidentManager implements IResidentService {
         }
         return list;
     }
-    
+
     private PreparedStatement prepareStatement(String query) throws SQLException {
         return DatabaseHelper.getConnection().prepareStatement(query);
     }
