@@ -12,9 +12,11 @@ import com.sitemanagement.services.IFinanceService;
 public class FinanceManager implements IFinanceService {
 
     @Override
-    public boolean addDebtToResident(int residentId, BigDecimal amount, String description) {
-        String updateQuery = "UPDATE Users SET dues_debt = dues_debt + ? WHERE id = ?";
-        String logQuery = "INSERT INTO Transactions (resident_id, amount, transaction_type, description) VALUES (?, ?, 'DUE', ?)";
+    public boolean addDebtToResident(int residentId, BigDecimal amount, TransactionType type, String description) {
+        // Hangi kolonu güncelleyeceğimizi seçiyoruz
+        String column = (type == TransactionType.EXTRA_FEE) ? "extra_debt" : "dues_debt";
+        String updateQuery = "UPDATE Users SET " + column + " = " + column + " + ? WHERE id = ?";
+        String logQuery = "INSERT INTO Transactions (resident_id, amount, transaction_type, description) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DatabaseHelper.getConnection()) {
             conn.setAutoCommit(false);
@@ -27,7 +29,8 @@ public class FinanceManager implements IFinanceService {
 
                 logStmt.setInt(1, residentId);
                 logStmt.setBigDecimal(2, amount);
-                logStmt.setString(3, description);
+                logStmt.setString(3, type.toString());
+                logStmt.setString(4, description);
                 logStmt.executeUpdate();
 
                 conn.commit();

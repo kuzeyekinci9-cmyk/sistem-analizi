@@ -2,6 +2,7 @@ package com.sitemanagement.main;
 
 import com.sitemanagement.enums.Role;
 import com.sitemanagement.enums.TicketStatus;
+import com.sitemanagement.enums.TransactionType;
 import com.sitemanagement.managers.*;
 import com.sitemanagement.models.*;
 import javafx.application.Application;
@@ -370,18 +371,23 @@ public class MainApp extends Application {
         txtAmount.setPromptText("Tutar (TL)");
         TextField txtDesc = new TextField();
         txtDesc.setPromptText("Açıklama");
+        
+        ComboBox<TransactionType> cmbDebtType = new ComboBox<>(FXCollections.observableArrayList(TransactionType.DUE, TransactionType.EXTRA_FEE));
+        cmbDebtType.setPromptText("Tür");
+        cmbDebtType.setValue(TransactionType.DUE); // Varsayılan aidat
+        
         Button btnAdd = new Button("Borç Yansıt");
 
         btnAdd.setOnAction(e -> {
             boolean ok = financeManager.addDebtToResident(Integer.parseInt(txtResId.getText()),
-                    new BigDecimal(txtAmount.getText()), txtDesc.getText());
+                    new BigDecimal(txtAmount.getText()), cmbDebtType.getValue(), txtDesc.getText());
             if (ok) {
                 showAlert("Başarılı", "Borç başarıyla yansıtıldı.");
                 reportTable.setItems(FXCollections.observableArrayList(financeManager.getSiteGeneralReport()));
             }
         });
 
-        form.getChildren().addAll(txtResId, txtAmount, txtDesc, btnAdd);
+        form.getChildren().addAll(txtResId, txtAmount, txtDesc, cmbDebtType, btnAdd);
         layout.getChildren().addAll(title, new Label("Ödenen/Borç Aidat Listesi"), reportTable, new Separator(),
                 new Label("Toplu Aidat Yansıtma:"), form);
         return layout;
