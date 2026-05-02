@@ -7,7 +7,7 @@ public class VehicleLog {
     private String licensePlate;
     private boolean isGuest;
     private LocalDateTime entryTime;
-    private LocalDateTime exitTime; // Çıkış yapana kadar null kalacak
+    private LocalDateTime exitTime;
 
     public VehicleLog(int logId, String licensePlate, boolean isGuest) {
         this.logId = logId;
@@ -16,28 +16,21 @@ public class VehicleLog {
         this.entryTime = LocalDateTime.now();
     }
 
-    // Araç çıkış yaptığında çağrılacak
     public void markExit() {
         this.exitTime = LocalDateTime.now();
     }
 
-    public int getLogId() {
-        return logId;
-    }
+    public int getLogId() { return logId; }
 
-    public String getLicensePlate() {
-        return licensePlate;
-    }
+    public String getLicensePlate() { return licensePlate; }
 
-    public boolean isGuest() {
-        return isGuest;
-    }
+    public boolean isGuest() { return isGuest; }
 
-    public LocalDateTime getEntryTime() {
-        return entryTime;
-    }
+    public LocalDateTime getEntryTime() { return entryTime; }
 
-    public LocalDateTime getExitTime() {
-        return exitTime;
-    }
+    public void setEntryTime(LocalDateTime entryTime) { this.entryTime = entryTime; }
+
+    public LocalDateTime getExitTime() { return exitTime; }
+
+    public void setExitTime(LocalDateTime exitTime) { this.exitTime = exitTime; }
 }

@@ -56,10 +56,50 @@ public class ParkingManager implements IParkingService {
         return list;
     }
 
+    public static class MyVehicleStatus {
+        private String plate;
+        private String status;
+
+        public MyVehicleStatus(String p, String s) {
+            this.plate = p;
+            this.status = s;
+        }
+
+        public String getPlate() { return plate; }
+        public String getStatus() { return status; }
+    }
+
+    public List<MyVehicleStatus> getResidentVehicleStatus(int apartmentId) {
+        List<MyVehicleStatus> list = new ArrayList<>();
+        List<Vehicle> myCars = getVehiclesByApartment(apartmentId);
+        for (Vehicle v : myCars) {
+            boolean inside = isVehicleInside(v.getLicensePlate());
+            list.add(new MyVehicleStatus(v.getLicensePlate(), inside ? "İçeride" : "Dışarıda"));
+        }
+        return list;
+    }
+
+    private boolean isVehicleInside(String plate) {
+        String query = "SELECT id FROM Vehicle_Logs WHERE license_plate = ? AND exit_time IS NULL";
+        try (Connection conn = DatabaseHelper.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, plate);
+            ResultSet rs = stmt.executeQuery();
+            return rs.next();
+        } catch (SQLException e) {
+            return false;
+        }
+    }
+
     public static class RegisteredVehicleInfo {
         private String ownerInfo;
         private String licensePlate;
-        public RegisteredVehicleInfo(String o, String l) { ownerInfo = o; licensePlate = l; }
+
+        public RegisteredVehicleInfo(String o, String l) {
+            ownerInfo = o;
+            licensePlate = l;
+        }
+
         public String getOwnerInfo() { return ownerInfo; }
         public String getLicensePlate() { return licensePlate; }
     }
@@ -106,18 +146,17 @@ public class ParkingManager implements IParkingService {
 
     @Override
     public boolean logGuestEntry(String plate, int visitingApartmentId) {
-        // Hibrit Mantık: Sadece misafirler burada loglanır. 
         if (getCurrentOccupancy() >= MAX_CAPACITY) return false;
-        
-        // Eğer bu plaka zaten bir sakine aitse, loglamaya (veya bara eklemeye) gerek yok 
-        // çünkü sakinler zaten "Kayıtlı" oldukları için barın içindeler.
-        if (isResident(plate)) return false;
+        if (isVehicleInside(plate)) return false;
 
-        String insertQuery = "INSERT INTO Vehicle_Logs (license_plate, is_guest, entry_time) VALUES (?, TRUE, ?)";
+        boolean isResident = isResident(plate);
+
+        String insertQuery = "INSERT INTO Vehicle_Logs (license_plate, is_guest, entry_time) VALUES (?, ?, ?)";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
             stmt.setString(1, plate.toUpperCase());
-            stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setBoolean(2, !isResident);
+            stmt.setTimestamp(3, Timestamp.valueOf(LocalDateTime.now()));
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -141,15 +180,11 @@ public class ParkingManager implements IParkingService {
     public int getCurrentOccupancy() {
         int residentCount = 0;
         int activeGuestCount = 0;
-
         try (Connection conn = DatabaseHelper.getConnection()) {
-            // 1. Kayıtlı Sakin Araçları
             String resQuery = "SELECT COUNT(*) FROM Vehicles";
             try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(resQuery)) {
                 if (rs.next()) residentCount = rs.getInt(1);
             }
-
-            // 2. İçerideki Misafir Araçlar
             String guestQuery = "SELECT COUNT(*) FROM Vehicle_Logs WHERE exit_time IS NULL AND is_guest = TRUE";
             try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(guestQuery)) {
                 if (rs.next()) activeGuestCount = rs.getInt(1);
@@ -175,6 +210,28 @@ public class ParkingManager implements IParkingService {
             e.printStackTrace();
         }
         return -1;
+    }
+
+    public List<VehicleLog> getAllLogs() {
+        List<VehicleLog> list = new ArrayList<>();
+        String query = "SELECT * FROM Vehicle_Logs ORDER BY entry_time DESC LIMIT 100";
+        try (Connection conn = DatabaseHelper.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                LocalDateTime entry = rs.getTimestamp("entry_time").toLocalDateTime();
+                LocalDateTime exit = null;
+                Timestamp exitTs = rs.getTimestamp("exit_time");
+                if (exitTs != null) exit = exitTs.toLocalDateTime();
+                VehicleLog log = new VehicleLog(rs.getInt("id"), rs.getString("license_plate"), rs.getBoolean("is_guest"));
+                log.setEntryTime(entry);
+                log.setExitTime(exit);
+                list.add(log);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     @Override

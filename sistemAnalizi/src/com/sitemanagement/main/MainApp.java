@@ -258,7 +258,7 @@ public class MainApp extends Application {
                 showAlert("Başarılı", "Sakin kaydedildi.");
                 txtName.clear();
                 txtPhone.clear();
-                txtPass.clear(); // Temizleme eklendi
+                txtPass.clear(); // Temizleme
             }
         });
         formRes.getChildren().addAll(txtName, txtPhone, txtPass, btnSaveRes);
@@ -427,13 +427,6 @@ public class MainApp extends Application {
         btnRegister.setStyle("-fx-background-color: #2c3e50; -fx-text-fill: white;");
         Button btnRefresh = new Button("Yenile");
 
-        btnRefresh.setOnAction(e -> {
-            int current = parkingManager.getCurrentOccupancy();
-            occupancyBar.setProgress((double) current / 150);
-            lblOccupancy.setText(current + " / 150 Araç İçeride");
-            tableVehicles.setItems(FXCollections.observableArrayList(parkingManager.getAllRegisteredVehiclesInfo()));
-        });
-
         btnRegister.setOnAction(e -> {
             try {
                 int aptId = Integer.parseInt(txtAptId.getText().trim());
@@ -509,8 +502,37 @@ public class MainApp extends Application {
         guestForm.getChildren().addAll(txtLogPlate, btnEnter, btnExit, lblSmartInfo);
         guestBox.getChildren().addAll(lblGuestTitle, guestForm);
 
-        layout.getChildren().addAll(title, graphBox, tableVehicles, formRegistry, guestBox);
-        return layout;
+        // --- LOGLAR: Otopark Geçmişi ---
+        VBox logBox = new VBox(10);
+        logBox.setStyle("-fx-padding: 15 0 0 0;");
+        Label lblLogTitle = new Label("Otopark Giriş-Çıkış Kayıtları (Loglar)");
+        lblLogTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+
+        TableView<VehicleLog> tableLogs = new TableView<>();
+        tableLogs.getColumns().add(this.<VehicleLog, String>createCol("Plaka", "licensePlate"));
+        tableLogs.getColumns().add(this.<VehicleLog, java.time.LocalDateTime>createCol("Giriş Zamanı", "entryTime"));
+        tableLogs.getColumns().add(this.<VehicleLog, java.time.LocalDateTime>createCol("Çıkış Zamanı", "exitTime"));
+        tableLogs.setItems(FXCollections.observableArrayList(parkingManager.getAllLogs()));
+        tableLogs.setPrefHeight(250);
+
+        logBox.getChildren().addAll(lblLogTitle, tableLogs);
+
+        btnRefresh.setOnAction(e -> {
+            int current = parkingManager.getCurrentOccupancy();
+            occupancyBar.setProgress((double) current / 150);
+            lblOccupancy.setText(current + " / 150 Araç İçeride");
+            tableVehicles.setItems(FXCollections.observableArrayList(parkingManager.getAllRegisteredVehiclesInfo()));
+            tableLogs.setItems(FXCollections.observableArrayList(parkingManager.getAllLogs()));
+        });
+
+        layout.getChildren().addAll(title, graphBox, tableVehicles, formRegistry, guestBox, logBox);
+
+        ScrollPane scrollPane = new ScrollPane(layout);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setPadding(new javafx.geometry.Insets(10));
+        scrollPane.setStyle("-fx-background-color: transparent;");
+
+        return new VBox(scrollPane);
     }
 
     private void setupResidentMenu(VBox menu, StackPane content) {
@@ -539,13 +561,14 @@ public class MainApp extends Application {
 
         int apartmentId = parkingManager.getApartmentIdByResidentId(currentUserId);
         List<com.sitemanagement.models.Vehicle> myVehicles = parkingManager.getVehiclesByApartment(apartmentId);
-        String plates = myVehicles.stream().map(v -> v.getLicensePlate()).reduce((a, b) -> a + ", " + b).orElse("Kayıtlı aracınız bulunmuyor.");
+        String plates = myVehicles.stream().map(v -> v.getLicensePlate()).reduce((a, b) -> a + ", " + b)
+                .orElse("Kayıtlı aracınız bulunmuyor.");
         Label lblMyCars = new Label("Kayıtlı Araçlarınız: " + plates);
         lblMyCars.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e; -fx-padding: 5 0;");
 
         int currentCars = parkingManager.getCurrentOccupancy();
         double progress = (currentCars > 0) ? Math.max((double) currentCars / 150, 0.04) : 0;
-        
+
         ProgressBar occupancyBar = new ProgressBar(progress);
         occupancyBar.setPrefWidth(400);
         occupancyBar.setStyle("-fx-accent: #2ecc71;");
@@ -567,15 +590,16 @@ public class MainApp extends Application {
         VBox guestSection = new VBox(10);
         Label lblGuestTitle = new Label("Ziyaretçi Araç Girişi");
         lblGuestTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-        
-        Label lblInfo = new Label("Sadece misafir plakası giriniz. Sakin araçları güvenlik tarafından otomatik tanınır.");
+
+        Label lblInfo = new Label(
+                "Sadece misafir plakası giriniz. Sakin araçları güvenlik tarafından otomatik tanınır.");
         lblInfo.setStyle("-fx-text-fill: #7f8c8d; -fx-font-style: italic;");
 
         HBox guestForm = new HBox(10);
         TextField txtGuestPlate = new TextField();
         txtGuestPlate.setPromptText("Misafir Plakası");
         txtGuestPlate.setPrefWidth(200);
-        
+
         Button btnGuestReg = new Button("Aracı Otoparka Al");
         btnGuestReg.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold;");
 
@@ -744,7 +768,7 @@ public class MainApp extends Application {
 
     private <S, T> TableColumn<S, T> createCol(String title, String prop) {
         TableColumn<S, T> col = new TableColumn<>(title);
-        col.setCellValueFactory(new PropertyValueFactory<>(prop));
+        col.setCellValueFactory(new PropertyValueFactory<S, T>(prop));
         return col;
     }
 
