@@ -274,40 +274,35 @@ public class MainApp extends Application {
 
     private VBox buildAdminTicketView() {
         VBox layout = new VBox(15);
-        Label title = new Label("Arıza Talepleri ve Personel Atama");
+        Label title = new Label("Arıza Talepleri Yönetimi");
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
 
         TableView<MaintenanceTicket> table = new TableView<>();
         table.getColumns().addAll(createCol("ID", "ticketId"), createCol("Başlık", "title"),
                 createCol("Durum", "status"));
-        table.setItems(FXCollections.observableArrayList(ticketManager.getTicketsByStatus(TicketStatus.OPEN)));
+        table.setItems(FXCollections.observableArrayList(ticketManager.getAllTickets()));
 
         HBox form = new HBox(10);
         ComboBox<TicketStatus> cmbStatus = new ComboBox<>(FXCollections.observableArrayList(TicketStatus.values()));
         cmbStatus.setPromptText("Yeni Durum");
-        TextField txtStaffId = new TextField();
-        txtStaffId.setPromptText("Personel ID (Atama İçin)");
-        Button btnUpdate = new Button("Durumu Güncelle / Ata");
+        Button btnUpdate = new Button("Durumu Güncelle");
         btnUpdate.setStyle("-fx-background-color: #f39c12; -fx-text-fill: white;");
 
         btnUpdate.setOnAction(e -> {
             MaintenanceTicket selected = table.getSelectionModel().getSelectedItem();
             if (selected != null) {
-                if (!txtStaffId.getText().isEmpty()) {
-                    ticketManager.assignTicketToStaff(selected.getTicketId(), Integer.parseInt(txtStaffId.getText()));
-                    showAlert("Başarılı", "Personel atandı ve durum güncellendi.");
-                } else if (cmbStatus.getValue() != null) {
+                if (cmbStatus.getValue() != null) {
                     ticketManager.updateTicketStatus(selected.getTicketId(), cmbStatus.getValue());
                     showAlert("Başarılı", "Arıza durumu güncellendi.");
                 }
-                table.setItems(FXCollections.observableArrayList(ticketManager.getTicketsByStatus(TicketStatus.OPEN)));
+                table.setItems(FXCollections.observableArrayList(ticketManager.getAllTickets()));
             } else {
                 showAlert("Uyarı", "Lütfen tablodan bir arıza seçin.");
             }
         });
 
-        form.getChildren().addAll(cmbStatus, txtStaffId, btnUpdate);
-        layout.getChildren().addAll(title, table, new Label("Durum Değiştir / Personel Ata:"), form);
+        form.getChildren().addAll(cmbStatus, btnUpdate);
+        layout.getChildren().addAll(title, table, new Label("Durum Değiştir:"), form);
         return layout;
     }
 
@@ -371,11 +366,12 @@ public class MainApp extends Application {
         txtAmount.setPromptText("Tutar (TL)");
         TextField txtDesc = new TextField();
         txtDesc.setPromptText("Açıklama");
-        
-        ComboBox<TransactionType> cmbDebtType = new ComboBox<>(FXCollections.observableArrayList(TransactionType.DUE, TransactionType.EXTRA_FEE));
+
+        ComboBox<TransactionType> cmbDebtType = new ComboBox<>(
+                FXCollections.observableArrayList(TransactionType.DUE, TransactionType.EXTRA_FEE));
         cmbDebtType.setPromptText("Tür");
         cmbDebtType.setValue(TransactionType.DUE); // Varsayılan aidat
-        
+
         Button btnAdd = new Button("Borç Yansıt");
 
         btnAdd.setOnAction(e -> {
@@ -395,16 +391,23 @@ public class MainApp extends Application {
 
     private VBox buildAdminParkingView() {
         VBox layout = new VBox(15);
-        Label title = new Label("Otopark Yönetimi (Admin)");
+        Label title = new Label("Otopark Yönetimi");
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+
+        // --- ÜST: Otopark Doluluk Grafiği ---
+        VBox graphBox = new VBox(5);
+        Label lblGraphTitle = new Label("Otopark Doluluk Grafiği");
+        lblGraphTitle.setStyle("-fx-font-weight: bold;");
 
         int currentCars = parkingManager.getCurrentOccupancy();
         ProgressBar occupancyBar = new ProgressBar((double) currentCars / 150);
-        occupancyBar.setPrefWidth(400);
-        occupancyBar.setStyle("-fx-accent: #3498db;");
-        Label lblOccupancy = new Label("Anlık Otopark Doluluğu: " + currentCars + " / 150");
-        lblOccupancy.setStyle("-fx-font-weight: bold;");
+        occupancyBar.setPrefWidth(Double.MAX_VALUE);
+        occupancyBar.setStyle("-fx-accent: #34495e;");
+        Label lblOccupancy = new Label(currentCars + " / 150 Araç İçeride");
 
+        graphBox.getChildren().addAll(lblGraphTitle, occupancyBar, lblOccupancy);
+
+        // --- ORTA: Kayıtlı Araç Tablosu ---
         TableView<ParkingManager.RegisteredVehicleInfo> tableVehicles = new TableView<>();
         tableVehicles.getColumns().addAll(
                 createCol("Daire Bilgisi", "ownerInfo"),
@@ -412,88 +415,101 @@ public class MainApp extends Application {
         tableVehicles.setItems(FXCollections.observableArrayList(parkingManager.getAllRegisteredVehiclesInfo()));
         tableVehicles.setPrefHeight(200);
 
+        // --- FORMLAR: Kayıt ve Misafir ---
         HBox formRegistry = new HBox(10);
+        formRegistry.setAlignment(Pos.CENTER_LEFT);
         TextField txtAptId = new TextField();
-        txtAptId.setPromptText("Daire ID");
+        txtAptId.setPromptText("Daire");
+        txtAptId.setPrefWidth(100);
         TextField txtRegPlate = new TextField();
-        txtRegPlate.setPromptText("Sakin Plakası");
-        Button btnRegister = new Button("Aracı Kaydet (Max 3)");
-        btnRegister.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
-
+        txtRegPlate.setPromptText("Plaka");
+        Button btnRegister = new Button("Kaydet");
+        btnRegister.setStyle("-fx-background-color: #2c3e50; -fx-text-fill: white;");
         Button btnRefresh = new Button("Yenile");
-        btnRefresh.setStyle("-fx-background-color: #f1c40f; -fx-font-weight: bold;");
+
         btnRefresh.setOnAction(e -> {
             int current = parkingManager.getCurrentOccupancy();
             occupancyBar.setProgress((double) current / 150);
-            lblOccupancy.setText("Anlık Otopark Doluluğu: " + current + " / 150");
+            lblOccupancy.setText(current + " / 150 Araç İçeride");
             tableVehicles.setItems(FXCollections.observableArrayList(parkingManager.getAllRegisteredVehiclesInfo()));
         });
 
         btnRegister.setOnAction(e -> {
             try {
                 int aptId = Integer.parseInt(txtAptId.getText().trim());
-                String plate = txtRegPlate.getText().trim();
-
-                if (plate.isEmpty()) {
-                    showAlert("Uyarı", "Plaka boş olamaz.");
-                    return;
-                }
-
-                boolean isSuccess = parkingManager.registerVehicle(aptId, plate);
-
-                if (isSuccess) {
-                    showAlert("Başarılı", "Araç daireye başarıyla tanımlandı.");
+                String plate = txtRegPlate.getText().trim().toUpperCase();
+                if (parkingManager.registerVehicle(aptId, plate)) {
+                    showAlert("Başarılı", "Araç kaydedildi.");
+                    btnRefresh.fire();
                     txtAptId.clear();
                     txtRegPlate.clear();
-                    btnRefresh.fire(); // Anlık listeyi yenile
                 } else {
-                    showAlert("Hata",
-                            "Kayıt başarısız! \nNedenler: \n- Bu daireye zaten maksimum (3) araç kayıtlı. \n- Daire ID yanlış.");
+                    showAlert("Hata", "Kayıt başarısız! (Maksimum 3 araç sınırı veya hatalı ID)");
                 }
-            } catch (NumberFormatException ex) {
-                showAlert("Uyarı", "Lütfen Daire ID kısmına sadece rakam giriniz.");
+            } catch (Exception ex) {
+                showAlert("Hata", "Geçersiz giriş!");
             }
         });
 
-        HBox formGuest = new HBox(10);
+        formRegistry.getChildren().addAll(new Label("Daire:"), txtAptId, new Label("Plaka:"), txtRegPlate, btnRegister,
+                btnRefresh);
+
+        // --- ALT: Misafir Araç Bölümü ---
+        VBox guestBox = new VBox(10);
+        guestBox.setStyle("-fx-border-color: #bdc3c7; -fx-border-width: 1 0 0 0; -fx-padding: 10 0 0 0;");
+        Label lblGuestTitle = new Label("Misafir Araç");
+        lblGuestTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+
+        HBox guestForm = new HBox(10);
+        guestForm.setAlignment(Pos.CENTER_LEFT);
         TextField txtLogPlate = new TextField();
-        txtLogPlate.setPromptText("Misafir Plakası");
-        Button btnEnter = new Button("Araç Giriş");
-        Button btnExit = new Button("Araç Çıkış");
+        txtLogPlate.setPromptText("Misafir Araç Bilgisi (Plaka)");
+        txtLogPlate.setPrefWidth(200);
+
+        Label lblSmartInfo = new Label(""); // Akıllı tanıma bilgisi
+        lblSmartInfo.setStyle("-fx-text-fill: #2980b9; -fx-font-style: italic;");
+
+        // Akıllı Plaka Tanıma (Text Değiştiğinde Çalışır)
+        txtLogPlate.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal.length() >= 5) {
+                String owner = parkingManager.findOwnerByPlate(newVal.toUpperCase());
+                if (!owner.contains("Bilinmiyor")) {
+                    lblSmartInfo.setText("Sakin Aracı: " + owner);
+                } else {
+                    lblSmartInfo.setText("Yabancı / Misafir Araç");
+                }
+            } else {
+                lblSmartInfo.setText("");
+            }
+        });
+
+        Button btnEnter = new Button("Araç Girişi");
+        btnEnter.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        Button btnExit = new Button("Araç Çıkışı");
+        btnExit.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white;");
 
         btnEnter.setOnAction(e -> {
-            if (parkingManager.getCurrentOccupancy() >= 150) {
-                showAlert("Uyarı", "Otopark Dolu (150/150)!");
-                return;
-            }
-            if (parkingManager.logGuestEntry(txtLogPlate.getText(), 0)) {
-                showAlert("Giriş Başarılı", "Araç içeri alındı.");
-                btnRefresh.fire(); // Anlık doluluk grafiğini yenile
+            if (parkingManager.logGuestEntry(txtLogPlate.getText().toUpperCase(), 0)) {
+                showAlert("Başarılı", "Giriş kaydedildi.");
+                btnRefresh.fire();
+            } else {
+                showAlert("Hata", "Giriş yapılamadı! (Otopark dolu olabilir)");
             }
         });
 
         btnExit.setOnAction(e -> {
-            if (parkingManager.logExit(txtLogPlate.getText())) {
-                showAlert("Çıkış Başarılı", "Araç çıkışı kaydedildi.");
-                btnRefresh.fire(); // Anlık doluluk grafiğini yenile
+            if (parkingManager.logExit(txtLogPlate.getText().toUpperCase())) {
+                showAlert("Başarılı", "Çıkış kaydedildi.");
+                btnRefresh.fire();
             } else {
-                showAlert("Hata", "Bu plaka kayıtlı değil.");
+                showAlert("Hata", "Aktif giriş kaydı bulunamadı.");
             }
         });
 
-        formGuest.getChildren().addAll(txtLogPlate, btnEnter, btnExit);
-        formRegistry.getChildren().addAll(txtAptId, txtRegPlate, btnRegister, btnRefresh);
+        guestForm.getChildren().addAll(txtLogPlate, btnEnter, btnExit, lblSmartInfo);
+        guestBox.getChildren().addAll(lblGuestTitle, guestForm);
 
-        HBox occupancyBox = new HBox(15, lblOccupancy, occupancyBar);
-        occupancyBox.setAlignment(Pos.CENTER_LEFT);
-
-        layout.getChildren().addAll(
-                title,
-                occupancyBox,
-                new Separator(),
-                new Label("Sisteme Kayıtlı Araçlar (Daireye Özel Max 3):"), tableVehicles, formRegistry,
-                new Separator(),
-                new Label("Manuel Giriş / Çıkış (Admin Log):"), formGuest);
+        layout.getChildren().addAll(title, graphBox, tableVehicles, formRegistry, guestBox);
         return layout;
     }
 
@@ -515,72 +531,77 @@ public class MainApp extends Application {
     }
 
     private VBox buildResidentParkingView() {
-        VBox layout = new VBox(15);
-        Label title = new Label("Otopark Durumu & Misafir Araç");
-        title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        VBox layout = new VBox(20);
+        layout.setPadding(new javafx.geometry.Insets(20));
 
-        // Otopark Anlık Doluluk
+        Label title = new Label("Otopark Durumu");
+        title.setStyle("-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+
+        int apartmentId = parkingManager.getApartmentIdByResidentId(currentUserId);
+        List<com.sitemanagement.models.Vehicle> myVehicles = parkingManager.getVehiclesByApartment(apartmentId);
+        String plates = myVehicles.stream().map(v -> v.getLicensePlate()).reduce((a, b) -> a + ", " + b).orElse("Kayıtlı aracınız bulunmuyor.");
+        Label lblMyCars = new Label("Kayıtlı Araçlarınız: " + plates);
+        lblMyCars.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e; -fx-padding: 5 0;");
+
         int currentCars = parkingManager.getCurrentOccupancy();
-        ProgressBar occupancyBar = new ProgressBar((double) currentCars / 150);
+        double progress = (currentCars > 0) ? Math.max((double) currentCars / 150, 0.04) : 0;
+        
+        ProgressBar occupancyBar = new ProgressBar(progress);
         occupancyBar.setPrefWidth(400);
         occupancyBar.setStyle("-fx-accent: #2ecc71;");
-        Label lblOccupancy = new Label("Anlık Otopark Doluluğu: " + currentCars + " / 150");
+        Label lblOccupancy = new Label("Otopark Doluluğu: " + currentCars + " / 150");
         lblOccupancy.setStyle("-fx-font-weight: bold;");
 
-        Button btnRefresh = new Button("Anlık Doluluğu Yenile");
+        Button btnRefresh = new Button("🔄 Yenile");
         btnRefresh.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
         btnRefresh.setOnAction(e -> {
             int current = parkingManager.getCurrentOccupancy();
-            occupancyBar.setProgress((double) current / 150);
-            lblOccupancy.setText("Anlık Otopark Doluluğu: " + current + " / 150");
+            double p = (current > 0) ? Math.max((double) current / 150, 0.04) : 0;
+            occupancyBar.setProgress(p);
+            lblOccupancy.setText("Otopark Doluluğu: " + current + " / 150");
         });
 
-        HBox occupancyBox = new HBox(15, lblOccupancy, occupancyBar, btnRefresh);
+        HBox occupancyBox = new HBox(15, occupancyBar, lblOccupancy, btnRefresh);
         occupancyBox.setAlignment(Pos.CENTER_LEFT);
 
-        // Kendi Araçları
-        /*
-         * VBox myCarsBox = new VBox(10);
-         * int myAptId = 0;
-         */
+        VBox guestSection = new VBox(10);
+        Label lblGuestTitle = new Label("Ziyaretçi Araç Girişi");
+        lblGuestTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        
+        Label lblInfo = new Label("Sadece misafir plakası giriniz. Sakin araçları güvenlik tarafından otomatik tanınır.");
+        lblInfo.setStyle("-fx-text-fill: #7f8c8d; -fx-font-style: italic;");
 
-        // Misafir Araç Kaydet
         HBox guestForm = new HBox(10);
         TextField txtGuestPlate = new TextField();
         txtGuestPlate.setPromptText("Misafir Plakası");
-        Button btnGuestReg = new Button("Misafir Aracı Otoparka Al");
-        btnGuestReg.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white;");
+        txtGuestPlate.setPrefWidth(200);
+        
+        Button btnGuestReg = new Button("Aracı Otoparka Al");
+        btnGuestReg.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-weight: bold;");
 
         btnGuestReg.setOnAction(e -> {
-            String plate = txtGuestPlate.getText().trim();
+            String plate = txtGuestPlate.getText().trim().toUpperCase();
             if (plate.isEmpty()) {
                 showAlert("Uyarı", "Plaka kısmı boş olamaz!");
                 return;
             }
-            int occupancy = parkingManager.getCurrentOccupancy();
-            if (occupancy >= 150) {
-                showAlert("Otopark Dolu",
-                        "Şu anda otopark tam kapasitededir (150/150). \nMisafir aracı kabul edilemiyor!");
+            if (parkingManager.isResident(plate)) {
+                showAlert("Hata", "Bu bir sakin aracıdır! Lütfen sadece misafir araç girişi yapınız.");
+                return;
+            }
+            if (parkingManager.logGuestEntry(plate, currentUserId)) {
+                showAlert("Başarılı", "Misafir araç " + plate + " sisteme işlendi.");
+                btnRefresh.fire();
+                txtGuestPlate.clear();
             } else {
-                if (parkingManager.logGuestEntry(plate, currentUserId)) { // currentUserId referencing the apartment. Or
-                                                                          // just 0
-                    showAlert("Başarılı", "Misafir araç " + plate + " sisteme işlendi ve kabul edildi.");
-                    btnRefresh.fire(); // Panel yenile
-                    txtGuestPlate.clear();
-                } else {
-                    showAlert("Hata", "Araç eklenirken bir hata oluştu.");
-                }
+                showAlert("Hata", "Araç zaten içeride veya bir hata oluştu.");
             }
         });
-        guestForm.getChildren().addAll(txtGuestPlate, btnGuestReg);
 
-        layout.getChildren().addAll(
-                title,
-                occupancyBox,
-                new Separator(),
-                new Label("Misafir Araç İşlemleri:"),
-                new Label("Eğer otopark dolu değilse, ziyaretçinize plaka üzerinden sistem girişi sağlayabilirsiniz."),
-                guestForm);
+        guestForm.getChildren().addAll(txtGuestPlate, btnGuestReg);
+        guestSection.getChildren().addAll(lblGuestTitle, lblInfo, guestForm);
+
+        layout.getChildren().addAll(title, lblMyCars, new Separator(), occupancyBox, guestSection);
         return layout;
     }
 

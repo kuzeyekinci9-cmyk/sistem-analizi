@@ -14,4 +14,6 @@ public interface ITicketService {
     List<MaintenanceTicket> getTicketsByStatus(TicketStatus status);
 
     List<MaintenanceTicket> getTicketsByResident(int residentId);
+
+    List<MaintenanceTicket> getAllTickets();
 }

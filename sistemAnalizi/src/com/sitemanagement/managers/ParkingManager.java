@@ -1,24 +1,27 @@
 package com.sitemanagement.managers;
 
 import com.sitemanagement.db.DatabaseHelper;
+import com.sitemanagement.models.Vehicle;
+import com.sitemanagement.models.VehicleLog;
 import com.sitemanagement.services.IParkingService;
 import java.sql.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ParkingManager implements IParkingService {
 
     private final int MAX_CAPACITY = 150;
 
-    // Araç tanımlama metodu.
     @Override
     public boolean registerVehicle(int apartmentId, String licensePlate) {
-        // Kapasite kontrolü.
         String checkCountQuery = "SELECT COUNT(*) AS total_cars FROM Vehicles WHERE apartment_id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement checkStmt = conn.prepareStatement(checkCountQuery)) {
             checkStmt.setInt(1, apartmentId);
             ResultSet rs = checkStmt.executeQuery();
             if (rs.next() && rs.getInt("total_cars") >= 3) {
-                return false; // Maksimum kapasite aşıldı.
+                return false;
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -29,7 +32,7 @@ public class ParkingManager implements IParkingService {
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, apartmentId);
-            stmt.setString(2, licensePlate);
+            stmt.setString(2, licensePlate.toUpperCase());
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -37,59 +40,43 @@ public class ParkingManager implements IParkingService {
         }
     }
 
-    // Daireye ait araç plakalarını getirir.
-    public java.util.List<String> getVehiclesByApartment(int apartmentId) {
-        java.util.List<String> plates = new java.util.ArrayList<>();
-        String query = "SELECT license_plate FROM Vehicles WHERE apartment_id = ?";
+    public List<Vehicle> getVehiclesByApartment(int apartmentId) {
+        List<Vehicle> list = new ArrayList<>();
+        String query = "SELECT * FROM Vehicles WHERE apartment_id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, apartmentId);
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
-                plates.add(rs.getString("license_plate"));
+                list.add(new Vehicle(rs.getInt("id"), rs.getInt("apartment_id"), rs.getString("license_plate")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return plates;
+        return list;
     }
 
-    // Tüm araçları getirir.
     public static class RegisteredVehicleInfo {
         private String ownerInfo;
         private String licensePlate;
-
-        public RegisteredVehicleInfo(String o, String l) {
-            ownerInfo = o;
-            licensePlate = l;
-        }
-
-        public String getOwnerInfo() {
-            return ownerInfo;
-        }
-
-        public String getLicensePlate() {
-            return licensePlate;
-        }
+        public RegisteredVehicleInfo(String o, String l) { ownerInfo = o; licensePlate = l; }
+        public String getOwnerInfo() { return ownerInfo; }
+        public String getLicensePlate() { return licensePlate; }
     }
 
-    public java.util.List<RegisteredVehicleInfo> getAllRegisteredVehiclesInfo() {
-        java.util.List<RegisteredVehicleInfo> list = new java.util.ArrayList<>();
-        String query = "SELECT a.id as apt_id, a.block_name, a.door_number, GROUP_CONCAT(v.license_plate SEPARATOR ', ') as plates "
-                +
-                "FROM Apartments a " +
-                "LEFT JOIN Vehicles v ON a.id = v.apartment_id " +
-                "GROUP BY a.id, a.block_name, a.door_number";
+    public List<RegisteredVehicleInfo> getAllRegisteredVehiclesInfo() {
+        List<RegisteredVehicleInfo> list = new ArrayList<>();
+        String query = "SELECT a.block_name, a.door_number, GROUP_CONCAT(v.license_plate SEPARATOR ', ') as plates "
+                + "FROM Apartments a "
+                + "LEFT JOIN Vehicles v ON a.id = v.apartment_id "
+                + "GROUP BY a.id, a.block_name, a.door_number";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query);
                 ResultSet rs = stmt.executeQuery()) {
             while (rs.next()) {
                 String plates = rs.getString("plates");
-                if (plates == null) {
-                    plates = "Yok";
-                }
-                String info = "Blok " + rs.getString("block_name") + ", Daire " + rs.getInt("door_number")
-                        + " (Maks 3 Araç)";
+                if (plates == null) plates = "-";
+                String info = rs.getString("block_name") + " Blok, No: " + rs.getInt("door_number");
                 list.add(new RegisteredVehicleInfo(info, plates));
             }
         } catch (SQLException e) {
@@ -98,7 +85,6 @@ public class ParkingManager implements IParkingService {
         return list;
     }
 
-    // Araç sorgulama metodu.
     @Override
     public String findOwnerByPlate(String plate) {
         String query = "SELECT u.full_name, a.block_name, a.door_number FROM Apartments a " +
@@ -106,7 +92,7 @@ public class ParkingManager implements IParkingService {
                 "JOIN Vehicles v ON a.id = v.apartment_id WHERE v.license_plate = ?";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, plate);
+            stmt.setString(1, plate.toUpperCase());
             ResultSet rs = stmt.executeQuery();
             if (rs.next()) {
                 return rs.getString("full_name") + " (" + rs.getString("block_name") + " Blok, No: "
@@ -120,14 +106,18 @@ public class ParkingManager implements IParkingService {
 
     @Override
     public boolean logGuestEntry(String plate, int visitingApartmentId) {
-        if (getCurrentOccupancy() >= MAX_CAPACITY)
-            return false;
+        // Hibrit Mantık: Sadece misafirler burada loglanır. 
+        if (getCurrentOccupancy() >= MAX_CAPACITY) return false;
+        
+        // Eğer bu plaka zaten bir sakine aitse, loglamaya (veya bara eklemeye) gerek yok 
+        // çünkü sakinler zaten "Kayıtlı" oldukları için barın içindeler.
+        if (isResident(plate)) return false;
 
-        String insertQuery = "INSERT INTO Vehicle_Logs (license_plate, is_guest) VALUES (?, ?)";
+        String insertQuery = "INSERT INTO Vehicle_Logs (license_plate, is_guest, entry_time) VALUES (?, TRUE, ?)";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(insertQuery)) {
-            stmt.setString(1, plate);
-            stmt.setBoolean(2, true);
+            stmt.setString(1, plate.toUpperCase());
+            stmt.setTimestamp(2, Timestamp.valueOf(LocalDateTime.now()));
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -140,7 +130,7 @@ public class ParkingManager implements IParkingService {
         String query = "UPDATE Vehicle_Logs SET exit_time = CURRENT_TIMESTAMP WHERE license_plate = ? AND exit_time IS NULL";
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, plate);
+            stmt.setString(1, plate.toUpperCase());
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -149,33 +139,42 @@ public class ParkingManager implements IParkingService {
     }
 
     public int getCurrentOccupancy() {
-        int total = 0;
+        int residentCount = 0;
+        int activeGuestCount = 0;
 
-        // Sisteme kayıtlı araçların sayısı.
-        String regQuery = "SELECT COUNT(*) AS count_reg FROM Vehicles";
-        try (Connection conn = DatabaseHelper.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(regQuery);
-                ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                total += rs.getInt("count_reg");
+        try (Connection conn = DatabaseHelper.getConnection()) {
+            // 1. Kayıtlı Sakin Araçları
+            String resQuery = "SELECT COUNT(*) FROM Vehicles";
+            try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(resQuery)) {
+                if (rs.next()) residentCount = rs.getInt(1);
+            }
+
+            // 2. İçerideki Misafir Araçlar
+            String guestQuery = "SELECT COUNT(*) FROM Vehicle_Logs WHERE exit_time IS NULL AND is_guest = TRUE";
+            try (Statement st = conn.createStatement(); ResultSet rs = st.executeQuery(guestQuery)) {
+                if (rs.next()) activeGuestCount = rs.getInt(1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return residentCount + activeGuestCount;
+    }
 
-        // Misafir araçların sayısı.
-        String guestQuery = "SELECT COUNT(*) AS count_guest FROM Vehicle_Logs WHERE exit_time IS NULL AND is_guest = TRUE";
+    public boolean isResident(String plate) {
+        return !findOwnerByPlate(plate).contains("Bilinmiyor");
+    }
+
+    public int getApartmentIdByResidentId(int residentId) {
+        String query = "SELECT id FROM Apartments WHERE resident_id = ?";
         try (Connection conn = DatabaseHelper.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(guestQuery);
-                ResultSet rs = stmt.executeQuery()) {
-            if (rs.next()) {
-                total += rs.getInt("count_guest");
-            }
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, residentId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return rs.getInt("id");
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
-        return total;
+        return -1;
     }
 
     @Override
@@ -184,7 +183,7 @@ public class ParkingManager implements IParkingService {
         try (Connection conn = DatabaseHelper.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, residentId);
-            stmt.setString(2, guestPlate);
+            stmt.setString(2, guestPlate.toUpperCase());
             return stmt.executeUpdate() > 0;
         } catch (SQLException e) {
             e.printStackTrace();
