@@ -146,4 +146,40 @@ public class FinanceManager implements IFinanceService {
         }
         return BigDecimal.ZERO;
     }
+    //Tüm sakinlere toplu borç yansıtır
+    public boolean addBulkDebtToAllResidents(BigDecimal amount, TransactionType type, String description) {
+        String column = (type == TransactionType.EXTRA_FEE) ? "extra_debt" : "dues_debt";
+        
+        // 1. Tüm sakinlerin borcunu güncelle
+        String updateQuery = "UPDATE Users SET " + column + " = " + column + " + ? WHERE role = 'RESIDENT'";
+        
+        String logQuery = "INSERT INTO Transactions (resident_id, amount, transaction_type, description) " +
+                          "SELECT id, ?, ?, ? FROM Users WHERE role = 'RESIDENT'";
+
+        try (Connection conn = DatabaseHelper.getConnection()) {
+            conn.setAutoCommit(false);
+            try (PreparedStatement updateStmt = conn.prepareStatement(updateQuery);
+                 PreparedStatement logStmt = conn.prepareStatement(logQuery)) {
+
+                // Update sorgusunun parametresi
+                updateStmt.setBigDecimal(1, amount);
+                updateStmt.executeUpdate();
+
+                // Log sorgusunun parametreleri
+                logStmt.setBigDecimal(1, amount);
+                logStmt.setString(2, type.toString());
+                logStmt.setString(3, description);
+                logStmt.executeUpdate();
+
+                conn.commit();
+                return true;
+            } catch (SQLException ex) {
+                conn.rollback();
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

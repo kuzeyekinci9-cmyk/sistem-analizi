@@ -360,8 +360,12 @@ public class MainApp extends Application {
         reportTable.setItems(FXCollections.observableArrayList(financeManager.getSiteGeneralReport()));
 
         HBox form = new HBox(10);
+        
+        // Kullanıcıya ipucu verdik: "Toplu için boş bırak"
         TextField txtResId = new TextField();
-        txtResId.setPromptText("Sakin ID");
+        txtResId.setPromptText("Sakin ID (Toplu için boş bırak)"); 
+        txtResId.setPrefWidth(180);
+        
         TextField txtAmount = new TextField();
         txtAmount.setPromptText("Tutar (TL)");
         TextField txtDesc = new TextField();
@@ -373,19 +377,51 @@ public class MainApp extends Application {
         cmbDebtType.setValue(TransactionType.DUE); // Varsayılan aidat
 
         Button btnAdd = new Button("Borç Yansıt");
+        btnAdd.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
 
         btnAdd.setOnAction(e -> {
-            boolean ok = financeManager.addDebtToResident(Integer.parseInt(txtResId.getText()),
-                    new BigDecimal(txtAmount.getText()), cmbDebtType.getValue(), txtDesc.getText());
-            if (ok) {
-                showAlert("Başarılı", "Borç başarıyla yansıtıldı.");
-                reportTable.setItems(FXCollections.observableArrayList(financeManager.getSiteGeneralReport()));
+            try {
+                String idText = txtResId.getText().trim();
+                BigDecimal amount = new BigDecimal(txtAmount.getText().trim());
+                TransactionType type = cmbDebtType.getValue();
+                String desc = txtDesc.getText().trim();
+
+                boolean ok = false;
+
+                
+                if (idText.isEmpty()) {
+                    // ID kutusu boşsa Toplu metodu çalıştır
+                    ok = financeManager.addBulkDebtToAllResidents(amount, type, desc);
+                    if (ok) showAlert("Başarılı", "Tüm site sakinlerine toplu borç başarıyla yansıtıldı.");
+                } else {
+                    // ID kutusu doluysa BİREYSEL metodu çalıştır
+                    int resId = Integer.parseInt(idText);
+                    ok = financeManager.addDebtToResident(resId, amount, type, desc);
+                    if (ok) showAlert("Başarılı", "ID'si " + resId + " olan sakine özel borç yansıtıldı.");
+                }
+
+                if (ok) {
+                    reportTable.setItems(FXCollections.observableArrayList(financeManager.getSiteGeneralReport()));
+                    txtResId.clear();
+                    txtAmount.clear();
+                    txtDesc.clear();
+                } else {
+                    showAlert("Hata", "İşlem sırasında bir sorun oluştu. Geçersiz bir ID girmiş olabilirsiniz.");
+                }
+            } catch (NumberFormatException ex) {
+                showAlert("Hata", "Lütfen tutar ve ID (eğer giriyorsanız) kısımlarına sadece geçerli sayılar giriniz.");
             }
         });
 
         form.getChildren().addAll(txtResId, txtAmount, txtDesc, cmbDebtType, btnAdd);
-        layout.getChildren().addAll(title, new Label("Ödenen/Borç Aidat Listesi"), reportTable, new Separator(),
-                new Label("Toplu Aidat Yansıtma:"), form);
+        
+        layout.getChildren().addAll(
+                title, 
+                new Label("Ödenen/Borç Aidat Listesi"), reportTable, 
+                new Separator(),
+                new Label("Borç Yansıtma (Tüm siteye yansıtmak için Sakin ID kısmını boş bırakın):"), form
+        );
+        
         return layout;
     }
 
