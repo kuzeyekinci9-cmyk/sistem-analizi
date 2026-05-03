@@ -455,7 +455,7 @@ public class MainApp extends Application {
         HBox formRegistry = new HBox(10);
         formRegistry.setAlignment(Pos.CENTER_LEFT);
         TextField txtAptId = new TextField();
-        txtAptId.setPromptText("Daire");
+        txtAptId.setPromptText("Daire ID");
         txtAptId.setPrefWidth(100);
         TextField txtRegPlate = new TextField();
         txtRegPlate.setPromptText("Plaka");
@@ -717,7 +717,10 @@ public class MainApp extends Application {
 
         grid.addRow(0, new Label("Ad Soyad:"), new Label(fullName));
         grid.addRow(1, new Label("Telefon:"), new Label(phone));
-        grid.addRow(2, new Label("Sistem ID:"), new Label(String.valueOf(currentUserId)));
+        grid.addRow(2, new Label("Sakin ID:"), new Label(String.valueOf(currentUserId)));
+        
+        int aptId = parkingManager.getApartmentIdByResidentId(currentUserId);
+        grid.addRow(3, new Label("Daire ID:"), new Label(aptId == -1 ? "Atanmamış" : String.valueOf(aptId)));
 
         layout.getChildren().addAll(title, grid);
         return layout;
